@@ -7,7 +7,7 @@ Trains Wav2Letter model using speech data
 """
 import argparse
 import tensorflow as tf
-from Wav2Letter.model_tf import Wav2Letter
+from Wav2Letter.model_keras import Wav2Letter
 from Wav2Letter.data import GoogleSpeechCommand
 from Wav2Letter.decoder import GreedyDecoder
 

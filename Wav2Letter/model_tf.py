@@ -2,6 +2,7 @@ from __future__ import print_function
 import math
 import numpy as np
 import tensorflow as tf
+import tensorflow.keras.backend as K
 from tensorflow.keras.layers import Conv1D
 from tensorflow.keras.layers import ReLU
 from tensorflow.keras.models import Sequential
@@ -26,135 +27,96 @@ class Wav2Letter():
     """
 
     def __init__(self, num_features, num_classes):
-        # super(Wav2Letter, self).__init__()
 
-        # Conv1d(in_channels, out_channels, kernel_size, stride)
-        self.layers = Sequential(
-            Conv1D(num_features, 250, 48, 2),
-            ReLU(),
-            Conv1D(250, 250, 7),
-            ReLU(),
-            Conv1D(250, 250, 7),
-            ReLU(),
-            Conv1D(250, 250, 7),
-            ReLU(),
-            Conv1D(250, 250, 7),
-            ReLU(),
-            Conv1D(250, 250, 7),
-            ReLU(),
-            Conv1D(250, 250, 7),
-            ReLU(),
-            Conv1D(250, 250, 7),
-            ReLU(),
-            Conv1D(250, 2000, 32),
-            ReLU(),
-            Conv1D(2000, 2000, 1),
-            ReLU(),
-            Conv1D(2000, num_classes, 1),
-        )
+        self.inputs = tf.placeholder(tf.float32, shape=(None, 225, 13))
+        self.targets = tf.placeholder(tf.float32, shape=(None, 6))
+        self.input_lengths = tf.placeholder(tf.int32, shape=(None,))
+        self.mini_batch_size = tf.placeholder(tf.int32)
+        self.target_lengths = tf.placeholder(tf.int32, shape=(None,))
 
-    def forward(self, batch):
-        """
-            Forward pass through Wav2Letter network than 
-            takes log probability of output
+        self.x = Conv1D(filters=250, padding='same', kernel_size=48, strides=2, activation='relu')(self.inputs)
+        self.x = Conv1D(filters=250, padding='same', kernel_size=7, strides=1, activation='relu')(self.x)
+        self.x = Conv1D(filters=250, padding='same', kernel_size=7, strides=1, activation='relu')(self.x)
+        self.x = Conv1D(filters=250, padding='same', kernel_size=7, strides=1, activation='relu')(self.x)
+        self.x = Conv1D(filters=250, padding='same', kernel_size=7, strides=1, activation='relu')(self.x)
+        self.x = Conv1D(filters=250, padding='same', kernel_size=7, strides=1, activation='relu')(self.x)
+        self.x = Conv1D(filters=250, padding='same', kernel_size=7, strides=1, activation='relu')(self.x)
+        self.x = Conv1D(filters=250, padding='same', kernel_size=7, strides=1, activation='relu')(self.x)
+        self.x = Conv1D(filters=2000, padding='same', kernel_size=32, strides=1, activation='relu')(self.x)
+        self.x = Conv1D(filters=2000, padding='same', kernel_size=1, strides=1, activation='relu')(self.x)
+        self.y_pred = Conv1D(filters=num_classes, padding='same', kernel_size=1, strides=1, activation='relu')(self.x)
 
-        Args:
-            batch (int): mini batch of data
-             shape (batch, num_features, frame_len)
+        self.log_probs = tf.nn.log_softmax(self.y_pred)
+        tf.transpose(self.log_probs, perm=[2, 0, 1])
+        self.input_lengths = np.ones((self.mini_batch_size.eval(),)) * self.log_probs.shape[0]
+        self.loss = K.ctc_batch_cost(self.targets, self.log_probs, self.input_lengths, self.target_lengths)
+        # self.loss = tf.nn.ctc_loss(self.targets, self.log_probs, self.input_lengths)
+ 	 
+        self.train_optim = tf.train.AdamOptimizer().minimize(self.loss)
+        
 
-        Returns:
-            log_probs (torch.Tensor):
-                shape  (batch_size, num_classes, output_len)
-        """
-        # y_pred shape (batch_size, num_classes, output_len)
-        y_pred = self.layers(batch)
+    def fit(self, inputs, output, batch_size, epoch, print_every=50):
 
-        # compute log softmax probability on graphemes
-        log_probs = tf.nn.log_softmax(y_pred)
-
-        return log_probs
-
-    def fit(self, inputs, output, optimizer, ctc_loss, batch_size, epoch, print_every=50):
-        """Trains Wav2Letter model.
-
-        Args:
-            inputs (Tensor): shape (sample_size, num_features, frame_len)
-            output (Tensor): shape (sample_size, seq_len)
-            optimizer (nn.optim): pytorch optimizer
-            ctc_loss (ctc_loss_fn): ctc loss function
-            batch_size (int): size of mini batches
-            epoch (int): number of epochs
-            print_every (int): every number of steps to print loss
-        """
         split_line = math.floor(0.9 * len(inputs))
         inputs_train, output_train = inputs[:split_line], output[:split_line]
         inputs_test, output_test = inputs[split_line:], output[split_line:]
-
         total_steps = math.ceil(len(inputs_train) / batch_size)
-        # seq_length = output.shape[1]
 
-        for t in range(epoch):
+        with tf.Session() as sess:
+            init = tf.global_variables_initializer()
+            sess.run(init)
+            for t in range(epoch):
 
-            samples_processed = 0
-            avg_epoch_loss = 0
+                samples_processed = 0
+                avg_epoch_loss = 0
 
-            for step in range(total_steps):
-                optimizer.zero_grad()
-                batch = \
-                    inputs_train[samples_processed:batch_size + samples_processed]
+                for step in range(total_steps):
+                    batch = \
+                        inputs_train[samples_processed:batch_size + samples_processed]
 
-                # log_probs shape (batch_size, num_classes, output_len)
-                log_probs = self.forward(batch)
+                    # CTC arguments
+                    # https://pytorch.org/docs/master/nn.html#torch.nn.CTCLoss
+                    # better definitions for ctc arguments
+                    # https://discuss.pytorch.org/t/ctcloss-with-warp-ctc-help/8788/3
+                    mini_batch_size = batch.shape[0]
+                    targets = output_train[samples_processed: mini_batch_size + samples_processed]
 
-                # CTC_Loss expects input shape
-                # (input_length, batch_size, num_classes)
-                # log_probs = log_probs.transpose(1, 2).transpose(0, 1)
-                tf.transpose(log_probs, perm=[2, 0, 1])
-                # CTC arguments
-                # https://pytorch.org/docs/master/nn.html#torch.nn.CTCLoss
-                # better definitions for ctc arguments
-                # https://discuss.pytorch.org/t/ctcloss-with-warp-ctc-help/8788/3
-                mini_batch_size = batch.shape[0]
-                targets = output_train[samples_processed: mini_batch_size + samples_processed]
+                    # input_lengths = np.ones((mini_batch_size,)) * batch.shape[0]
+                    target_lengths = np.asarray([target.shape[0] for target in targets])
+                    sess.run(self.train_optim, feed_dict={self.inputs: batch, 
+                                                          self.targets: targets,
+                                                          self.input_lengths: target_lengths,
+                                                          self.mini_batch_size: mini_batch_size,
+                                                          self.target_lengths: target_lengths})
 
-                # input_lengths = torch.full((mini_batch_size,), log_probs.shape[0], dtype=torch.long)
-                input_lengths = np.ones((mini_batch_size,)) * log_probs.shape[0]
-                # target_lengths = torch.IntTensor([target.shape[0] for target in targets])
-                target_lengths = np.asarray([target.shape[0] for target in targets])
+                    train_loss = sess.run(self.loss)
+                    avg_epoch_loss += train_loss
+                    samples_processed += mini_batch_size
 
-                loss = tf.nn.ctc_loss(targets, log_probs, input_lengths)
+                    if step % print_every == 0:
+                        print("epoch", t + 1, ":" , "step", step + 1, "/", total_steps, ", loss ", train_loss)
+                        
+                # #eval test data every epoch
+                # samples_processed = 0
+                # avg_epoch_test_loss = 0
+                # total_steps_test = math.ceil(len(inputs_test) / batch_size)
+                # for step in range(total_steps_test):
+                #     batch = inputs_test[samples_processed:batch_size + samples_processed]
 
-                # avg_epoch_loss += loss.item()
+                #     log_probs = self.forward(batch)
+                #     log_probs = log_probs.transpose(1, 2).transpose(0, 1)
 
-                # loss.backward()
-                # optimizer.step()
+                #     mini_batch_size = len(batch)
+                #     targets = output_test[samples_processed: mini_batch_size + samples_processed]
 
-                samples_processed += mini_batch_size
+                #     input_lengths = torch.full((mini_batch_size,), log_probs.shape[0], dtype=torch.long)
+                #     target_lengths = torch.IntTensor([target.shape[0] for target in targets])
 
-                if step % print_every == 0:
-                    print("epoch", t + 1, ":" , "step", step + 1, "/", total_steps, ", loss ", loss.item())
-                    
-            #eval test data every epoch
-            samples_processed = 0
-            avg_epoch_test_loss = 0
-            total_steps_test = math.ceil(len(inputs_test) / batch_size)
-            for step in range(total_steps_test):
-                batch = inputs_test[samples_processed:batch_size + samples_processed]
-
-                log_probs = self.forward(batch)
-                log_probs = log_probs.transpose(1, 2).transpose(0, 1)
-
-                mini_batch_size = len(batch)
-                targets = output_test[samples_processed: mini_batch_size + samples_processed]
-
-                input_lengths = torch.full((mini_batch_size,), log_probs.shape[0], dtype=torch.long)
-                target_lengths = torch.IntTensor([target.shape[0] for target in targets])
-
-                test_loss = ctc_loss(log_probs, targets, input_lengths, target_lengths)
-                avg_epoch_test_loss += test_loss.item()
-                samples_processed += mini_batch_size
-            print("epoch", t + 1, "average epoch loss", avg_epoch_loss / total_steps)
-            print("epoch", t + 1, "average epoch test_loss", avg_epoch_test_loss / total_steps_test)
+                #     test_loss = ctc_loss(log_probs, targets, input_lengths, target_lengths)
+                #     avg_epoch_test_loss += test_loss.item()
+                #     samples_processed += mini_batch_size
+                print("epoch", t + 1, "average epoch loss", avg_epoch_loss / total_steps)
+                # print("epoch", t + 1, "average epoch test_loss", avg_epoch_test_loss / total_steps_test)
 
     def eval(self, sample):
         """Evaluate model given a single sample
