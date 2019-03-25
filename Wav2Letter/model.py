@@ -62,9 +62,10 @@ class Wav2Letter(nn.Module):
         """
         # y_pred shape (batch_size, num_classes, output_len)
         y_pred = self.layers(batch)
-
+        print('y_pred size:', y_pred.size())
         # compute log softmax probability on graphemes
         log_probs = F.log_softmax(y_pred, dim=1)
+        print('log_probs size:', log_probs.size())
         print(log_probs)
         return log_probs
 
@@ -115,6 +116,10 @@ class Wav2Letter(nn.Module):
                 target_lengths = torch.IntTensor([target.shape[0] for target in targets])
                 print(input_lengths)
                 print(target_lengths)
+                print(log_probs.size())
+                print(targets.size())
+                print(input_lengths.size())
+                print(target_lengths.size())
                 loss = ctc_loss(log_probs, targets, input_lengths, target_lengths)
 
                 avg_epoch_loss += loss.item()
