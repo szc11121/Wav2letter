@@ -56,7 +56,7 @@ class Wav2Letter():
         self.x = ReLU()(self.x)
         self.x = Conv1D(filters=2000, kernel_size=1)(self.x)
         self.x = ReLU()(self.x)
-        self.y_pred = Conv1D(name='pred', filters=num_classes, kernel_size=1, activation='softmax')(self.x)
+        self.y_pred = Conv1D(name='pred', filters=num_classes+1, kernel_size=1, activation='softmax')(self.x)
         # self.model = Model(inputs=[self.inputs, self.targets], outputs=[self.y_pred])
         # print(self.model.summary())
         # print(self.y_pred.shape.as_list())
@@ -119,11 +119,11 @@ class Wav2Letter():
                 target_lengths = np.asarray([target.shape[0] for target in targets]).reshape(-1,1)
                 # print(input_lengths.shape)
                 # print(target_lengths.shape)
-                print(targets.shape)
-                print(targets)
-                loss = self.model.train_on_batch([batch, targets, input_lengths, target_lengths], targets)
-
-                avg_epoch_loss += K.mean(loss)
+                # print(targets.shape)
+                # print(targets)
+                loss = self.model.train_on_batch([batch, targets, input_lengths, target_lengths], np.ones(mini_batch_size))
+                # print(type(loss), loss)
+                avg_epoch_loss += loss
                 samples_processed += mini_batch_size
 
                 if step % print_every == 0:
@@ -144,7 +144,7 @@ class Wav2Letter():
                 target_lengths = np.asarray([target.shape[0] for target in targets]).reshape(-1,1)
 
                 test_loss = self.model.predict([batch, targets, input_lengths, target_lengths])
-                avg_epoch_test_loss += K.mean(test_loss)
+                avg_epoch_test_loss += test_loss
                 samples_processed += mini_batch_size
             print("epoch", t + 1, "average epoch loss", avg_epoch_loss / total_steps)
             print("epoch", t + 1, "average epoch test_loss", avg_epoch_test_loss / total_steps_test)
