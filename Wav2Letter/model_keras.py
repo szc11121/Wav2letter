@@ -141,7 +141,7 @@ class Wav2Letter():
                 targets = output_test[samples_processed: mini_batch_size + samples_processed]
 
                 input_lengths = np.ones((mini_batch_size, 1)) * self.model.get_layer('pred').output_shape[1]
-                target_lengths = np.asarray([target.shape[0] for target in targets]).reshape(-1,1)
+                target_lengths = np.asarray([np.argwhere(target == -1)[0]+1 if np.argwhere(target == -1).shape[0]>0 else target.shape[0] for target in targets]).reshape(-1,1)
 
                 test_loss = self.model.predict([batch, targets, input_lengths, target_lengths])
                 print(type(test_loss), test_loss)
