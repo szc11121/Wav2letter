@@ -313,7 +313,10 @@ class TextImageGenerator(keras.callbacks.Callback):
                 self.cur_train_index = self.cur_train_index % 32
                 (self.X_text, self.Y_data, self.Y_len) = shuffle_mats_or_lists(
                     [self.X_text, self.Y_data, self.Y_len], self.val_split)
-            print(ret[0]['label_length'])
+            # print(ret[0]['the_input'].shape)
+            # print(ret[0]['the_labels'].shape)
+            # print(ret[0]['input_length'].shape)
+            # print(ret[0]['label_length'].shape)
             yield ret
 
     def next_val(self):
@@ -518,7 +521,7 @@ def train(run_name, start_epoch, stop_epoch, img_w):
 
     model = Model(inputs=[input_data, labels, input_length, label_length],
                   outputs=loss_out)
-
+    model.summary()
     # the loss calc occurs elsewhere, so use a dummy lambda func for the loss
     model.compile(loss={'ctc': lambda y_true, y_pred: y_pred}, optimizer=sgd)
     if start_epoch > 0:

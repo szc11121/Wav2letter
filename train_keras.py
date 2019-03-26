@@ -8,6 +8,7 @@ Trains Wav2Letter model using speech data
 import argparse
 import tensorflow as tf
 import keras.backend as K
+import numpy as np
 from Wav2Letter.model_keras import Wav2Letter
 from Wav2Letter.data import GoogleSpeechCommand
 from Wav2Letter.decoder import GreedyDecoder
@@ -52,7 +53,7 @@ def train(batch_size, epochs):
     # to      (sample_size, mfcc_features, in_frame_len)
     # inputs = inputs.transpose(1, 2)
     print("transposed input", inputs.shape)
-
+    
     model.fit(inputs, targets, batch_size, epoch=epochs)
 
     sample = inputs[0]
