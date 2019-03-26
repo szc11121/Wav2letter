@@ -60,7 +60,7 @@ class Wav2Letter():
         # self.model = Model(inputs=[self.inputs, self.targets], outputs=[self.y_pred])
         # print(self.model.summary())
         # print(self.y_pred.shape.as_list())
-        self.log_probs = Softmax()(self.y_pred)
+        self.log_probs = Softmax(name='log_probs')(self.y_pred)
 
 
         self.input_lengths = Input(name='input_length', shape=[1])
@@ -71,7 +71,7 @@ class Wav2Letter():
         # Since loss is already calculated in the last layer of the net, we just pass through the results here.
         # The loss dummy labels have to be given to satify the Keras API.
         self.model.compile(loss={'ctc': lambda y_true, y_pred: y_pred}, optimizer='adam')
-        
+        self.predict_model = Model(inputs=self.model.get_layer('input').input, outputs=self.model.get_layer('log_probs').output)
         print(self.model.summary())
 
     def ctc_lambda_func(self, args):
@@ -149,3 +149,18 @@ class Wav2Letter():
             print("epoch", t + 1, "average epoch loss", avg_epoch_loss / total_steps)
             print("epoch", t + 1, "average epoch test_loss", avg_epoch_test_loss / total_steps_test)
 
+    def eval(self, sample):
+        """Evaluate model given a single sample
+
+        Args:
+            sample (torch.Tensor): shape (n_features, frame_len)
+
+        Returns:
+            log probabilities (torch.Tensor):
+                shape (n_features, output_len)
+        """
+        
+        _input = sample.reshape(1, sample.shape[0], sample.shape[1])
+        log_prob = self.predict_model(_input)
+        output = K.ctc_decode(log_prob, input_length=self.model.get_layer('pred').output_shape[1])
+        return output

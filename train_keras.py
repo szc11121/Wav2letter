@@ -7,6 +7,7 @@ Trains Wav2Letter model using speech data
 """
 import argparse
 import tensorflow as tf
+import keras.backend as K
 from Wav2Letter.model_keras import Wav2Letter
 from Wav2Letter.data import GoogleSpeechCommand
 from Wav2Letter.decoder import GreedyDecoder
@@ -57,8 +58,7 @@ def train(batch_size, epochs):
     sample = inputs[0]
     sample_target = targets[0]
     
-    log_probs = model.eval(sample)
-    output = GreedyDecoder(log_probs)
+    output = model.eval(sample)
 
     print("sample target", sample_target)
     print("predicted", output)
