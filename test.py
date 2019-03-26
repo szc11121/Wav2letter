@@ -291,6 +291,7 @@ class TextImageGenerator(keras.callbacks.Callback):
                     X_data[i, 0:self.img_w, :, 0] = (
                         self.paint_func(self.X_text[index + i])[0, :, :].T)
                 labels[i, :] = self.Y_data[index + i]
+                
                 input_length[i] = self.img_w // self.downsample_factor - 2
                 label_length[i] = self.Y_len[index + i]
                 source_str.append(self.X_text[index + i])
@@ -312,7 +313,7 @@ class TextImageGenerator(keras.callbacks.Callback):
                 self.cur_train_index = self.cur_train_index % 32
                 (self.X_text, self.Y_data, self.Y_len) = shuffle_mats_or_lists(
                     [self.X_text, self.Y_data, self.Y_len], self.val_split)
-            print(ret[0]['the_labels'])
+            print(ret[0]['label_length'])
             yield ret
 
     def next_val(self):

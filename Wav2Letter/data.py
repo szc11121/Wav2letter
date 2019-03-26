@@ -30,7 +30,7 @@ class IntegerEncode:
         self.index2char = {
             -1: "pad"
         }
-        self.grapheme_count = 1#字母统计
+        self.grapheme_count = 0#字母统计
         self.process(labels)#完成char2index和index2char
         self.max_label_seq = 6
 
@@ -47,6 +47,7 @@ class IntegerEncode:
                 self.char2index[s] = self.grapheme_count
                 self.index2char[self.grapheme_count] = s
                 self.grapheme_count += 1
+        self.grapheme_count += 1 #加上pad
 
     def convert_to_ints(self, label):
         """
