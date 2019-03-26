@@ -25,10 +25,10 @@ class IntegerEncode:
     def __init__(self, labels):
         # reserve 0 for blank label
         self.char2index = {
-            "pad":0
+            "pad":-1
         }
         self.index2char = {
-            0: "pad"
+            -1: "pad"
         }
         self.grapheme_count = 1#字母统计
         self.process(labels)#完成char2index和index2char

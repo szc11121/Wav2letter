@@ -144,6 +144,7 @@ class Wav2Letter():
                 target_lengths = np.asarray([target.shape[0] for target in targets]).reshape(-1,1)
 
                 test_loss = self.model.predict([batch, targets, input_lengths, target_lengths])
+                print(type(test_loss), test_loss)
                 avg_epoch_test_loss += test_loss
                 samples_processed += mini_batch_size
             print("epoch", t + 1, "average epoch loss", avg_epoch_loss / total_steps)
