@@ -1,4 +1,5 @@
 from __future__ import print_function
+from functools import reduce
 import math
 # import torch
 # import torch.nn as nn
@@ -32,7 +33,7 @@ class Wav2Letter():
     def __init__(self, num_features, num_classes):
         super(Wav2Letter, self).__init__()
         self.inputs = Input(name='input', shape=(225, 13))
-        self.targets = Input(name='target', shape=(6,))
+        
         
         # input_lengths = Input(tf.int32, shape=(None,))
         # target_lengths = Input(tf.int32, shape=(None,))
@@ -56,13 +57,13 @@ class Wav2Letter():
         self.x = ReLU()(self.x)
         self.x = Conv1D(filters=2000, kernel_size=1)(self.x)
         self.x = ReLU()(self.x)
-        self.y_pred = Conv1D(name='pred', filters=num_classes+1, kernel_size=1, activation='softmax')(self.x)
+        self.y_pred = Conv1D(name='pred', filters=num_classes+1, kernel_size=1)(self.x)
         # self.model = Model(inputs=[self.inputs, self.targets], outputs=[self.y_pred])
         # print(self.model.summary())
         # print(self.y_pred.shape.as_list())
         self.log_probs = Activation('softmax', name='log_probs')(self.y_pred)
 
-
+        self.targets = Input(name='target', shape=(6,))
         self.input_lengths = Input(name='input_length', shape=(1,))
         self.target_lengths = Input(name='label_length', shape=(1,))
         self.loss_out = Lambda(self.ctc_lambda_func, output_shape=(1,), name='ctc')([self.log_probs, self.targets, self.input_lengths, self.target_lengths])
@@ -73,7 +74,11 @@ class Wav2Letter():
         self.model.compile(loss={'ctc': lambda y_true, y_pred: y_pred}, optimizer='adam')
         self.predict_model = Model(inputs=self.model.get_layer('input').input, outputs=self.model.get_layer('log_probs').output)
         self.model.summary()
-
+        self.length_ratio = reduce(
+            lambda x, y: x * y,
+            [layer.strides[0] for layer in self.model.layers if isinstance(layer, Conv1D)],
+            1)
+        print('length_ratio', self.length_ratio)
     def ctc_lambda_func(self, args):
         y_pred, labels, input_length, label_length = args
 
@@ -99,8 +104,13 @@ class Wav2Letter():
     #         if self.cur_val_index >= self.num_words:
     #             self.cur_val_index = self.val_split + self.cur_val_index % 32
     #         yield ret
+    def input_to_prediction_length_ratio(self):
+        """Returns which factor shorter the output is compared to the input caused by striding."""
+        return reduce(lambda x, y: x * y,
+                      [layer.strides[0] for layer in self.model.layers if
+                       isinstance(layer, Conv1D)], 1)
 
-    def fit(self, inputs, output, batch_size, epoch, print_every=50):
+    def fit(self, inputs, output, input_lengths, batch_size, epoch=15, print_every=50):
         """
         Trains Wav2Letter model.
 
@@ -114,17 +124,24 @@ class Wav2Letter():
             print_every (int): every number of steps to print loss
         """
         # split_line = math.floor(0.9 * len(inputs))
-        input_lengths = np.ones((inputs.shape[0], 1)) * self.model.get_layer('pred').output_shape[1]
+        predict_lengths = np.ones((inputs.shape[0], 1)) * (self.model.get_layer('pred').output_shape[1])
+        # predict_lengths = np.asarray([s // self.length_ratio for s in input_lengths])
         target_lengths = np.asarray([np.argwhere(output_ == -1)[0][0] if np.argwhere(output_ == -1).shape[0]>0 else output_.shape[0] for output_ in output]).reshape(-1,1)
         # inputs_train, output_train = inputs[:split_line], output[:split_line]
         # inputs_test, output_test = inputs[split_line:], output[split_line:]
         # input_lengths_train, input_lengths_test = input_lengths[:split_line], input_lengths[split_line:]
         # target_lengths_train, target_lengths_test = target_lengths[:split_line], target_lengths[split_line:]
+        print(inputs[0])
+        print(output[0])
+        print(input_lengths[0])
+        print(predict_lengths[0])
+        print(target_lengths[0])
+
         self.model.fit(
-            x=[inputs, output, input_lengths, target_lengths],
+            x=[inputs, output, predict_lengths, target_lengths],
             y=np.ones((inputs.shape[0],1)),
             batch_size=batch_size,
-            epoch=epoch,
+            epochs=epoch,
             validation_split=0.1,
             )
         # total_steps = math.ceil(len(inputs_train) / batch_size)

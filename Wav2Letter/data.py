@@ -47,7 +47,7 @@ class IntegerEncode:
                 self.char2index[s] = self.grapheme_count
                 self.index2char[self.grapheme_count] = s
                 self.grapheme_count += 1
-        self.grapheme_count += 1 #加上pad
+        # self.grapheme_count += 1 #加上pad
 
     def convert_to_ints(self, label):
         """
@@ -120,7 +120,7 @@ class GoogleSpeechCommand():
         """
         pg = tqdm if progress_bar else lambda x: x
 
-        inputs, targets = [], []
+        inputs, targets, input_lengths= [], [], []
         meta_data = []
         for label in self.labels:
             path = os.listdir(os.path.join(self.data_path, label))
@@ -140,15 +140,16 @@ class GoogleSpeechCommand():
             )
             mfccs = normalize(mfccs)
             diff = self.max_frame_len - mfccs.shape[0]
+            input_lengths.append(mfccs.shape[0])
             mfccs = np.pad(mfccs, ((0, diff), (0, 0)), "constant")#padding
             inputs.append(mfccs)#shape = (max_frame_len, num_coeffs)
 
             target = self.intencode.convert_to_ints(label)
             targets.append(target)
-        return inputs, targets
+        return inputs, targets, input_lengths
 
     @staticmethod
-    def save_vectors(file_path, x, y):
+    def save_vectors(file_path, x, y, x_length):
         """
         saves input and targets vectors as x.npy and y.npy
         
@@ -159,8 +160,10 @@ class GoogleSpeechCommand():
         """
         x_file = os.path.join(file_path, "x")
         y_file = os.path.join(file_path, "y")
+        length_file = os.path.join(file_path, "x_length")
         np.save(x_file, np.asarray(x))
         np.save(y_file, np.asarray(y))
+        np.save(length_file, np.asarray(x_length))
 
     @staticmethod
     def load_vectors(file_path):
@@ -175,15 +178,16 @@ class GoogleSpeechCommand():
         """
         x_file = os.path.join(file_path, "x.npy")
         y_file = os.path.join(file_path, "y.npy")
-
+        length_file = os.path.join(file_path, "x_length.npy")
         inputs = np.load(x_file)
         targets = np.load(y_file)
-        return inputs, targets
+        input_lengths = np.load(length_file)
+        return inputs, targets, input_lengths
 
 
 if __name__ == "__main__":
     gs = GoogleSpeechCommand()
-    inputs, targets = gs.get_data()
-    gs.save_vectors("./speech_data", inputs, targets)
+    inputs, targets, input_lengths = gs.get_data()
+    gs.save_vectors("./speech_data", inputs, targets, input_lengths)
     gs.intencode.save("./speech_data")
     print("preprocessed and saved")

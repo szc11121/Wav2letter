@@ -67,14 +67,16 @@ def train(batch_size, epochs):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Wav2Letter')
-    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
-                        help='input batch size for training (default: 64)')
-    parser.add_argument('--epochs', type=int, default=100, metavar='N',
-                        help='total epochs (default: 100)')
+    # parser = argparse.ArgumentParser(description='Wav2Letter')
+    # parser.add_argument('--batch_size', type=int, default=64, metavar='N',
+    #                     help='input batch size for training (default: 64)')
+    # parser.add_argument('--epochs', type=int, default=100, metavar='N',
+    #                     help='total epochs (default: 100)')
 
-    args = parser.parse_args()
+    # args = parser.parse_args()
 
-    batch_size = args.batch_size
-    epochs = args.epochs
+    # batch_size = args.batch_size
+    # epochs = args.epochs
+    batch_size = 256
+    epochs = 15
     train(batch_size, epochs)

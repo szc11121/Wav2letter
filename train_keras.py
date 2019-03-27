@@ -17,7 +17,7 @@ from Wav2Letter.decoder import GreedyDecoder
 def train(batch_size, epochs):
     # load saved numpy arrays for google speech command
     gs = GoogleSpeechCommand()
-    _inputs, _targets = gs.load_vectors("./speech_data")
+    inputs, targets, input_lengths= gs.load_vectors("./speech_data")
 
     # paramters
     batch_size = batch_size
@@ -26,16 +26,13 @@ def train(batch_size, epochs):
     index2char = gs.intencode.index2char
 
     print("training google speech dataset")
-    print("data size", len(_inputs))
+    print("data size", len(inputs))
     print("batch_size", batch_size)
     print("epochs", epochs)
     print("num_mfcc_features", mfcc_features)
     print("grapheme_count", grapheme_count)
     print("index2char", index2char)
 
-    # tensors
-    inputs = _inputs
-    targets = _targets
 
     print("input shape", inputs.shape)
     print("target shape", targets.shape)
@@ -54,26 +51,28 @@ def train(batch_size, epochs):
     # inputs = inputs.transpose(1, 2)
     print("transposed input", inputs.shape)
     
-    model.fit(inputs, targets, batch_size, epoch=epochs)
+    model.fit(inputs, targets, input_lengths, batch_size, epoch=epochs)
 
-    sample = inputs[0]
-    sample_target = targets[0]
+    # sample = inputs[0]
+    # sample_target = targets[0]
     
-    output = model.eval(sample)
+    # output = model.eval(sample)
 
-    print("sample target", sample_target)
-    print("predicted", output)
+    # print("sample target", sample_target)
+    # print("predicted", output)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Wav2Letter')
-    parser.add_argument('--batch_size', type=int, default=64, metavar='N',
-                        help='input batch size for training (default: 64)')
-    parser.add_argument('--epochs', type=int, default=100, metavar='N',
-                        help='total epochs (default: 100)')
+    # parser = argparse.ArgumentParser(description='Wav2Letter')
+    # parser.add_argument('--batch_size', type=int, default=64, metavar='N',
+    #                     help='input batch size for training (default: 64)')
+    # parser.add_argument('--epochs', type=int, default=100, metavar='N',
+    #                     help='total epochs (default: 100)')
 
-    args = parser.parse_args()
+    # args = parser.parse_args()
 
-    batch_size = args.batch_size
-    epochs = args.epochs
+    # batch_size = args.batch_size
+    # epochs = args.epochs
+    batch_size = 256
+    epochs = 15
     train(batch_size, epochs)
