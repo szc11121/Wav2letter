@@ -132,13 +132,11 @@ class Wav2Letter():
             #visualize sample
             sample = inputs_test[0]
             sample_target = output_test[0]
+            output = self.eval(sample, sample_target)
+
             
-            output = self.eval(sample)
 
-            print("sample target", sample_target)
-            print("predicted", output.eval())
-
-    def eval(self, sample):
+    def eval(self, sample, sample_target):
         """Evaluate model given a single sample
 
         Args:
@@ -152,4 +150,5 @@ class Wav2Letter():
         _input = sample.reshape(1, sample.shape[0], sample.shape[1])
         log_prob = self.predict_model.predict(_input)
         output = K.ctc_decode(log_prob, input_length=np.asarray(self.model.get_layer('pred').output_shape[1]).reshape(1,))
-        return output
+        print("sample target", sample_target)
+        print("predicted", output[0][0].eval())

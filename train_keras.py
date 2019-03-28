@@ -12,7 +12,13 @@ import numpy as np
 from Wav2Letter.model_keras import Wav2Letter
 from Wav2Letter.data import GoogleSpeechCommand
 from Wav2Letter.decoder import GreedyDecoder
-
+import os 
+os.environ["CUDA_VISIBLE_DEVICES"] = "3" 
+import keras.backend.tensorflow_backend as KTF
+config = tf.ConfigProto()  
+config.gpu_options.allow_growth=True   
+session = tf.Session(config=config)
+KTF.set_session(session)
 
 def train(batch_size, epochs):
     # load saved numpy arrays for google speech command
