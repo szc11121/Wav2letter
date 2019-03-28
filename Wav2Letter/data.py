@@ -1,42 +1,35 @@
-"""Data module. Downloads data. preprocess data. Data feeder pipeline
-
-    TODO:
-        * Build a more memory efficient data feeder pipeline
-"""
 import os
 import numpy as np
 import random
 import pickle
 from sonopy import mfcc_spec
 from scipy.io import wavfile
-from tqdm import tqdm_notebook as nb_tqdm
 from tqdm import tqdm
-
 
 
 class IntegerEncode:
     """
-    Encodes labels into integers
+        Encodes labels into integers
     
     Args:
         labels (list): shape (n_samples, strings)
     """
 
     def __init__(self, labels):
-        # reserve 0 for blank label
+
         self.char2index = {
             "pad":-1
         }
         self.index2char = {
             -1: "pad"
         }
-        self.grapheme_count = 0#字母统计
-        self.process(labels)#完成char2index和index2char
+        self.grapheme_count = 0 #字母统计
+        self.process(labels)    #完成char2index和index2char
         self.max_label_seq = 6
 
     def process(self, labels):
         """
-        builds the encoding values for labels
+            builds the encoding values for labels
         
         Args:
             labels (list): shape (n_samples, strings)
@@ -47,11 +40,10 @@ class IntegerEncode:
                 self.char2index[s] = self.grapheme_count
                 self.index2char[self.grapheme_count] = s
                 self.grapheme_count += 1
-        # self.grapheme_count += 1 #加上pad
 
     def convert_to_ints(self, label):
         """
-        Convert into integers
+            Convert into integers
         
         Args:
             label (str): string to encode
@@ -69,7 +61,8 @@ class IntegerEncode:
         return y
 
     def save(self, file_path):
-        """Save integer encoder model as a pickle file
+        """
+            Save integer encoder model as a pickle file
 
         Args:
             file_path (str): path to save pickle object
@@ -81,7 +74,7 @@ class IntegerEncode:
 
 def normalize(values):
     """
-    Normalize values to mean 0 and std 1
+        Normalize values to mean 0 and std 1
     
     Args:
         values (np.array): shape (frame_len, features)
@@ -93,7 +86,8 @@ def normalize(values):
 
 
 class GoogleSpeechCommand():
-    """Data set can be found here 
+    """
+        Data set can be found here 
         https://www.kaggle.com/c/tensorflow-speech-recognition-challenge/data
     """
 
@@ -111,7 +105,7 @@ class GoogleSpeechCommand():
 
     def get_data(self, progress_bar=True):
         """
-        Currently returns mfccs and integer encoded data
+            Currently returns mfccs and integer encoded data
 
         Returns:
             (list, list): 
@@ -128,7 +122,7 @@ class GoogleSpeechCommand():
                 audio_path = os.path.join(self.data_path, label, audio)
                 meta_data.append((audio_path, label))
         
-        random.shuffle(meta_data)#打乱数据集
+        random.shuffle(meta_data)   #打乱数据集
 
         for md in pg(meta_data):
             audio_path = md[0]
@@ -142,7 +136,7 @@ class GoogleSpeechCommand():
             diff = self.max_frame_len - mfccs.shape[0]
             input_lengths.append(mfccs.shape[0])
             mfccs = np.pad(mfccs, ((0, diff), (0, 0)), "constant")#padding
-            inputs.append(mfccs)#shape = (max_frame_len, num_coeffs)
+            inputs.append(mfccs)
 
             target = self.intencode.convert_to_ints(label)
             targets.append(target)
@@ -151,7 +145,7 @@ class GoogleSpeechCommand():
     @staticmethod
     def save_vectors(file_path, x, y, x_length):
         """
-        saves input and targets vectors as x.npy and y.npy
+            saves input and targets vectors as x.npy and y.npy
         
         Args:
             file_path (str): path to save numpy array
@@ -168,7 +162,7 @@ class GoogleSpeechCommand():
     @staticmethod
     def load_vectors(file_path):
         """
-        load inputs and targets
+            load inputs and targets
         
         Args:
             file_path (str): path to load targets from
