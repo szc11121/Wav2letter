@@ -39,6 +39,6 @@ python Wav2Letter/data.py
 ## Train
 
 ```bash
-python train.py --batch_size=256 --epochs=1000
+python train.py --batch_size=256 --epochs=20
 ```
 训练过程中会显示训练集的LOSS，每个epoch会显示测试集的loss并且使用测试集的第一个样本进行输出测试。
